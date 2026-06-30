@@ -238,7 +238,7 @@ function updateSystemMode(isOnline) {
 async function fetchDataFromGoogleSheets() {
   if (!config.apiUrl) return;
   
-  showToast("Connecting to Google Sheets...", "warning");
+  showToast("Connecting ...", "warning");
   
   try {
     const response = await fetch(config.apiUrl);
@@ -254,7 +254,7 @@ async function fetchDataFromGoogleSheets() {
       
       updateSystemMode(true);
       populateDepartmentDropdown();
-      showToast("Synced database with Google Sheets!", "success");
+      showToast("Synced database!", "success");
     } else {
       throw new Error(json.message);
     }
@@ -1166,7 +1166,7 @@ async function saveTimetableToSheets() {
       const json = await response.json();
       
       if (json.status === "success") {
-        showToast("Timetable saved successfully to Google Sheets!", "success");
+        showToast("Timetable saved successfully!", "success");
         
         clearLocalTimetableMemory();
         
