@@ -2,7 +2,9 @@
 // COLLEGE TIMETABLE SYSTEM - CLIENT APPLICATION CODE
 // ==========================================================================
 
-// --- MOCK DATABASE FALLBACK (CLEARED FOR DIRECT GOOGLE SHEETS MODE) ---
+// --- MOCK DATABASE FALLBACK ---
+// This database will load automatically if no Google Sheets Web App URL is configured,
+// allowing the system to be immediately functional and demonstrable.
 const MOCK_DATABASE = {
   classes: [],
   faculty: [],
@@ -10,7 +12,6 @@ const MOCK_DATABASE = {
   subjectfaculty: [],
   timetable: []
 };
-
 // Helper to retrieve values from spreadsheet rows case-insensitively and space-insensitively.
 // This is critical since spreadsheet headers can vary (e.g., 'Department' vs 'department' vs 'Dept').
 function getVal(obj, ...keys) {
@@ -162,6 +163,8 @@ function setupEventListeners() {
   elements.btnPrint.addEventListener("click", () => window.print());
   elements.btnCopyTimetable.addEventListener("click", openCopyModal);
   
+
+  
   // Copy Modal Handlers
   elements.btnCloseCopy.addEventListener("click", () => closeModal(elements.modalCopy));
   elements.selectCopySource.addEventListener("change", () => {
@@ -226,7 +229,7 @@ function switchMode(mode) {
 // --- SYSTEM MODE CONTROL ---
 function updateSystemMode(isOnline) {
   if (isOnline) {
-    elements.badgeStatus.textContent = "MMCTT Connected";
+    elements.badgeStatus.textContent = "MMCTT Connected";a
     elements.badgeStatus.className = "badge badge-success";
   } else {
     elements.badgeStatus.textContent = "MMCTT Offline";
@@ -269,21 +272,15 @@ async function fetchDataFromGoogleSheets() {
   }
 }
 
+
+
 // --- FILTER CONTROLS ---
 function populateDepartmentDropdown() {
   let departments = [];
   
   // Try loading from optional departments sheet first
   if (db.departments && db.departments.length > 0) {
-    departments = [...new Set(db.departments.map(d => {
-      let val = getVal(d, "Department Name", "Department", "Departments", "DeptName", "Name", "Dept");
-      if (!val) {
-        // Fallback: Grab the first non-empty value of the row object
-        const vals = Object.values(d).map(v => String(v).trim()).filter(v => v !== "");
-        if (vals.length > 0) val = vals[0];
-      }
-      return val;
-    }))];
+    departments = [...new Set(db.departments.map(d => getVal(d, "Department Name", "Department", "DeptName", "Name")))];
   } else {
     // Fallback: collect unique departments from classes and faculty lists
     const classesDepts = db.classes.map(c => getVal(c, "Department", "Dept"));
@@ -627,7 +624,7 @@ function openCellEditModal(day, periodIndex) {
     getVal(s, "Semester") === activeFilters.semester
   );
   
-  elements.cellSelectSubject.innerHTML = '<option value="">-- Clear Hour (Free Hour) --</option>';
+  elements.cellSelectSubject.innerHTML = '<option value="">-- Clear Period (Free Period) --</option>';
   filteredSubjects.forEach(s => {
     const option = document.createElement("option");
     const sCode = getVal(s, "Subject Code", "SubjectCode");
@@ -917,7 +914,16 @@ function applyCellEditToGrid() {
   closeModal(elements.modalCellEdit);
 }
 
-// --- CLONE/COPY TIMETABLE ---
+function clearCellInGrid() {
+  const day = currentEditingCell.day;
+  const periodIdx = currentEditingCell.periodIndex;
+  
+  delete gridState[`${day}_${periodIdx}`];
+  renderTimetableGrid();
+  closeModal(elements.modalCellEdit);
+}
+
+// --- COPY TIMETABLE FROM ANOTHER TARGET ---
 function openCopyModal() {
   const modalLabel = document.querySelector("#modal-copy .modal-desc");
   const modalTitle = document.querySelector("#modal-copy h3");
@@ -979,10 +985,6 @@ function openCopyModal() {
   }
   
   elements.btnConfirmCopy.disabled = true;
-  openCopyModalOverlay();
-}
-
-function openCopyModalOverlay() {
   openModal(elements.modalCopy);
   lucide.createIcons();
 }
@@ -1051,7 +1053,7 @@ function executeCopyTimetable() {
   showToast("Copied layout. Remember to review conflicts and click Save.", "success");
 }
 
-// --- SAVE TIMETABLE ---
+// --- SAVE TIMETABLE BACK TO DATABASE ---
 async function saveTimetableToSheets() {
   elements.btnSave.disabled = true;
   elements.btnSave.innerHTML = '<i class="spin-icon" data-lucide="loader-2"></i> Saving...';
@@ -1219,6 +1221,25 @@ function saveLocallyToMock(entriesToSend) {
   });
   
   renderTimetableGrid();
+}
+
+// --- DATABASE SETTINGS MODAL ---
+function saveSettings() {
+  const url = elements.txtApiUrl.value.trim();
+  config.apiUrl = url;
+  
+  if (url) {
+    localStorage.setItem("timetable_api_url", url);
+    fetchDataFromGoogleSheets();
+  } else {
+    localStorage.removeItem("timetable_api_url");
+    updateSystemMode(false);
+    db = { ...MOCK_DATABASE };
+    populateDepartmentDropdown();
+    showToast("Returned to offline demo database.", "success");
+  }
+  
+  closeModal(elements.modalSettings);
 }
 
 // --- DIALOG MODAL HELPERS ---
