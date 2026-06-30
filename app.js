@@ -229,7 +229,7 @@ function switchMode(mode) {
 // --- SYSTEM MODE CONTROL ---
 function updateSystemMode(isOnline) {
   if (isOnline) {
-    elements.badgeStatus.textContent = "MMCTT Connected";a
+    elements.badgeStatus.textContent = "MMCTT Connected";
     elements.badgeStatus.className = "badge badge-success";
   } else {
     elements.badgeStatus.textContent = "MMCTT Offline";
