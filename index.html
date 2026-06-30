@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MMCTT | Academic Timetable Portal</title>
+  <!-- Google Fonts - Outfit and Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Sidebar Controls -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <i data-lucide="calendar-range"></i>
+        </div>
+        <div>
+          <h1>MMCTT</h1>
+          <p>Academic Timetable Portal</p>
+        </div>
+      </div>
+      <div class="mode-switch-container">
+        <button class="mode-tab active" id="tab-class-mode" data-mode="class">
+          <i data-lucide="book-open"></i> Class Mode
+        </button>
+        <button class="mode-tab" id="tab-teacher-mode" data-mode="teacher">
+          <i data-lucide="user"></i> Teacher Mode
+        </button>
+      </div>
+      
+      <div class="sidebar-section">
+        <h2><i data-lucide="sliders-horizontal"></i> Filters</h2>
+        
+        <div class="form-group">
+          <label for="select-academic-year">Academic Year</label>
+          <div class="select-wrapper">
+            <select id="select-academic-year">
+              <option value="2026-2027">2026-2027</option>
+              <option value="2027-2028">2027-2028</option>
+            </select>
+            <i data-lucide="chevron-down" class="select-arrow"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="select-semester">Semester</label>
+          <div class="select-wrapper">
+            <select id="select-semester">
+              <option value="">Select Semester</option>
+              <option value="S1">S1 (Semester 1)</option>
+              <option value="S3">S3 (Semester 3)</option>
+              <option value="S5">S5 (Semester 5)</option>
+            </select>
+            <i data-lucide="chevron-down" class="select-arrow"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="select-department">Department</label>
+          <div class="select-wrapper">
+            <select id="select-department">
+              <option value="">Select Department</option>
+              <!-- Populated dynamically -->
+            </select>
+            <i data-lucide="chevron-down" class="select-arrow"></i>
+          </div>
+        </div>
+
+        <div class="form-group" id="class-filter-group">
+          <label for="select-class">Class</label>
+          <div class="select-wrapper">
+            <select id="select-class" disabled>
+              <option value="">Select Class</option>
+              <!-- Populated dynamically -->
+            </select>
+            <i data-lucide="chevron-down" class="select-arrow"></i>
+          </div>
+        </div>
+
+        <div class="form-group hide" id="teacher-filter-group">
+          <label for="select-teacher">Teacher</label>
+          <div class="select-wrapper">
+            <select id="select-teacher" disabled>
+              <option value="">Select Teacher</option>
+              <!-- Populated dynamically -->
+            </select>
+            <i data-lucide="chevron-down" class="select-arrow"></i>
+          </div>
+        </div>
+        
+        <button id="btn-load-class" class="btn btn-primary" disabled>
+          <i data-lucide="refresh-cw"></i> Load Timetable
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="developer-info" style="font-size: 0.72rem; color: var(--text-muted); text-align: center; line-height: 1.5; border-top: 1px solid var(--border-color); padding-top: 12px;">
+          Developed by <span style="color: var(--accent-primary); font-weight: 700; background: rgba(99, 102, 241, 0.15); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.3); display: inline-block; margin-bottom: 5px;">IT Club</span><br>PG & Research Department of Computer Science
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Action Bar -->
+      <header class="top-bar">
+        <div class="active-class-info">
+          <span class="badge" id="badge-status">Offline Mock Database</span>
+          <h2 id="lbl-current-class">Select a class to begin entry</h2>
+        </div>
+        
+        <div class="action-buttons">
+          <button id="btn-copy-timetable" class="btn btn-outline" disabled>
+            <i data-lucide="copy"></i> Copy Timetable
+          </button>
+          <button id="btn-print" class="btn btn-outline" disabled>
+            <i data-lucide="printer"></i> Print Grid
+          </button>
+          <button id="btn-save" class="btn btn-success" disabled>
+            <i data-lucide="save"></i> Save to Sheets
+          </button>
+        </div>
+      </header>
+
+      <!-- Timetable Interface Card -->
+      <div class="timetable-card-container">
+        
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="welcome-screen">
+          <div class="welcome-illustration">
+            <i data-lucide="calendar"></i>
+          </div>
+          <h3>Welcome to the MMCTT Portal</h3>
+          <p>Please select the Academic Year, Semester, Department, and Class in the sidebar filters, then click "Load Timetable" to start editing.</p>
+        </div>
+
+        <!-- Main Timetable Grid -->
+        <div id="timetable-grid-wrapper" class="timetable-grid-wrapper hide">
+          <table class="timetable-table" id="timetable-table">
+            <thead>
+              <tr>
+                <th class="day-header">Day</th>
+                <th>
+                  <span class="period-num">Hour 0</span>
+                  <span class="period-time">09:00 - 09:55</span>
+                </th>
+                <th>
+                  <span class="period-num">Hour 1</span>
+                  <span class="period-time">10:00 - 10:55</span>
+                </th>
+                <th>
+                  <span class="period-num">Hour 2</span>
+                  <span class="period-time">11:05 - 12:00</span>
+                </th>
+                <th>
+                  <span class="period-num">Hour 3</span>
+                  <span class="period-time">12:05 - 01:00</span>
+                </th>
+                <th>
+                  <span class="period-num">Hour 4</span>
+                  <span class="period-time">01:40 - 02:35</span>
+                </th>
+                <th>
+                  <span class="period-num">Hour 5</span>
+                  <span class="period-time">02:45 - 03:40</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="timetable-tbody">
+              <!-- Grid generated via javascript -->
+            </tbody>
+          </table>
+        </div>
+        
+      </div>
+    </main>
+  </div>
+
+
+  <!-- Copy Timetable Modal -->
+  <div id="modal-copy" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i data-lucide="copy"></i> Copy Timetable Layout</h3>
+        <button class="modal-close" id="btn-close-copy">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Copy another class's timetable into the current class. This will overwrite the unsaved grid cells below.</p>
+        
+        <div class="form-group">
+          <label for="copy-source-class">Source Class</label>
+          <div class="select-wrapper">
+            <select id="copy-source-class">
+              <option value="">Select Source Class</option>
+              <!-- Populated dynamically -->
+            </select>
+            <i data-lucide="chevron-down" class="select-arrow"></i>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-confirm-copy" class="btn btn-primary" disabled>Overwrite and Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cell Edit Dialog (Modal/Popover style) -->
+  <div id="modal-cell-edit" class="modal">
+    <div class="modal-content cell-edit-content">
+      <div class="modal-header">
+        <div>
+          <h3 id="cell-edit-title">Edit Hour Assignment</h3>
+          <p id="cell-edit-subtitle" class="modal-subtitle">Monday - Hour 0</p>
+        </div>
+        <button class="modal-close" id="btn-close-cell-edit">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group hide" id="cell-class-group">
+          <label for="cell-select-class">Class</label>
+          <div class="select-wrapper">
+            <select id="cell-select-class">
+              <option value="">Select Class</option>
+              <!-- Filled dynamically in teacher mode -->
+            </select>
+            <i data-lucide="chevron-down" class="select-arrow"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="cell-select-subject">Subject / Course</label>
+          <div class="select-wrapper">
+            <select id="cell-select-subject">
+              <option value="">-- Clear Hour (Free Hour) --</option>
+              <!-- Filled dynamically based on dept/sem -->
+            </select>
+            <i data-lucide="chevron-down" class="select-arrow"></i>
+          </div>
+        </div>
+
+        <div id="faculty-assignment-section" class="hide">
+          <div class="form-group">
+            <label for="cell-select-faculty1">Primary Faculty</label>
+            <div class="select-wrapper">
+              <select id="cell-select-faculty1">
+                <option value="">Select Primary Teacher</option>
+                <!-- Dynamically filtered based on Subjectfaculty mapping -->
+              </select>
+              <i data-lucide="chevron-down" class="select-arrow"></i>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="checkbox-container">
+              <input type="checkbox" id="chk-two-faculty">
+              <label for="chk-two-faculty">Assign second faculty member for co-teaching</label>
+            </div>
+          </div>
+
+          <div class="form-group hide" id="faculty2-wrapper">
+            <label for="cell-select-faculty2">Secondary Faculty</label>
+            <div class="select-wrapper">
+              <select id="cell-select-faculty2">
+                <option value="">Select Secondary Teacher</option>
+                <!-- Dynamically filtered -->
+              </select>
+              <i data-lucide="chevron-down" class="select-arrow"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clash warning notification inside edit dialog -->
+        <div class="clash-warning-card hide" id="dialog-clash-warning">
+          <i data-lucide="alert-triangle"></i>
+          <div>
+            <h4>Schedule Conflict Detected</h4>
+            <p id="dialog-clash-msg">Faculty is already assigned to another class during this period.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-clear-cell" class="btn btn-outline btn-danger-text">Clear Cell</button>
+        <button id="btn-apply-cell" class="btn btn-primary">Apply to Grid</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>
