@@ -1,10 +1,8 @@
 // ==========================================================================
-// COLLEGE TIMETABLE SYSTEM - CLIENT APPLICATION CODE
+// COLLEGE TIMETABLE SYSTEM - CLIENT APPLICATION CODE (MMCTT FRESH VERSION)
 // ==========================================================================
 
-// --- MOCK DATABASE FALLBACK ---
-// This database will load automatically if no Google Sheets Web App URL is configured,
-// allowing the system to be immediately functional and demonstrable.
+// --- MOCK DATABASE FALLBACK (CLEARED FOR DIRECT GOOGLE SHEETS MODE) ---
 const MOCK_DATABASE = {
   classes: [],
   faculty: [],
@@ -12,6 +10,7 @@ const MOCK_DATABASE = {
   subjectfaculty: [],
   timetable: []
 };
+
 // Helper to retrieve values from spreadsheet rows case-insensitively and space-insensitively.
 // This is critical since spreadsheet headers can vary (e.g., 'Department' vs 'department' vs 'Dept').
 function getVal(obj, ...keys) {
@@ -32,7 +31,7 @@ function getVal(obj, ...keys) {
 let db = { ...MOCK_DATABASE };
 let config = {
   // Hardcoded deployment Google Apps Script URL for MMCTT portal
-  apiUrl: "https://script.google.com/macros/s/AKfycbxPkD6Xhr3rSFknxjnaep7UR-XA8jTXpr4NqC-b3Rp0LM1w4JFVlNnrskKtbuRuhwyjAQ/exec"
+  apiUrl: "https://script.google.com/macros/s/AKfycbxZ41-SlA1RMMQO4kZgk9ea8jSLXU-u1x68vLnMZo_A1hJPRJNVSaqpDOL7kmIreEUD/exec"
 };
 
 // Selections
@@ -163,8 +162,6 @@ function setupEventListeners() {
   elements.btnPrint.addEventListener("click", () => window.print());
   elements.btnCopyTimetable.addEventListener("click", openCopyModal);
   
-
-  
   // Copy Modal Handlers
   elements.btnCloseCopy.addEventListener("click", () => closeModal(elements.modalCopy));
   elements.selectCopySource.addEventListener("change", () => {
@@ -248,11 +245,11 @@ async function fetchDataFromGoogleSheets() {
     const json = await response.json();
     
     if (json.status === "success") {
-      db.classes = json.data.classes;
-      db.faculty = json.data.faculty;
-      db.subjects = json.data.subjects;
-      db.subjectfaculty = json.data.subjectfaculty;
-      db.timetable = json.data.timetable;
+      db.classes = json.data.classes || [];
+      db.faculty = json.data.faculty || [];
+      db.subjects = json.data.subjects || [];
+      db.subjectfaculty = json.data.subjectfaculty || [];
+      db.timetable = json.data.timetable || [];
       db.departments = json.data.departments || [];
       
       updateSystemMode(true);
@@ -272,23 +269,55 @@ async function fetchDataFromGoogleSheets() {
   }
 }
 
-
-
 // --- FILTER CONTROLS ---
 function populateDepartmentDropdown() {
   let departments = [];
   
   // Try loading from optional departments sheet first
   if (db.departments && db.departments.length > 0) {
-    departments = [...new Set(db.departments.map(d => getVal(d, "Department Name", "Department", "DeptName", "Name")))];
+    const firstRowObj = db.departments[0];
+    const keys = Object.keys(firstRowObj);
+    if (keys.length > 0) {
+      const firstColumnHeader = keys[0].trim();
+      
+      // If the header itself is a department name (like "Computer Science")
+      if (firstColumnHeader && 
+          firstColumnHeader.toLowerCase() !== "department name" && 
+          firstColumnHeader.toLowerCase() !== "department" && 
+          firstColumnHeader.toLowerCase() !== "dept" &&
+          firstColumnHeader.toLowerCase() !== "deptname" &&
+          firstColumnHeader.toLowerCase() !== "name") {
+        departments.push(firstColumnHeader);
+      }
+      
+      // Get the row values from this first column
+      db.departments.forEach(row => {
+        if (!row) return;
+        const val = String(row[keys[0]]).trim();
+        if (val && val.toLowerCase() !== "major" && val.toLowerCase() !== "minor") {
+          departments.push(val);
+        }
+      });
+    }
   } else {
     // Fallback: collect unique departments from classes and faculty lists
-    const classesDepts = db.classes.map(c => getVal(c, "Department", "Dept"));
-    const facultyDepts = db.faculty.map(f => getVal(f, "Department", "Dept"));
-    departments = [...new Set([...classesDepts, ...facultyDepts])];
+    if (db.classes) {
+      db.classes.forEach(c => {
+        const val = getVal(c, "Department", "Dept");
+        if (val) departments.push(val);
+      });
+    }
+    if (db.faculty) {
+      db.faculty.forEach(f => {
+        const val = getVal(f, "Department", "Dept");
+        if (val) departments.push(val);
+      });
+    }
   }
   
-  departments = departments.filter(d => d !== "").sort();
+  // Deduplicate list, clean and sort
+  departments = [...new Set(departments)];
+  departments = departments.filter(d => d && d.trim() !== "").sort();
   
   // Store selected department before clearing
   const selectedDept = elements.selectDept.value;
@@ -624,7 +653,7 @@ function openCellEditModal(day, periodIndex) {
     getVal(s, "Semester") === activeFilters.semester
   );
   
-  elements.cellSelectSubject.innerHTML = '<option value="">-- Clear Period (Free Period) --</option>';
+  elements.cellSelectSubject.innerHTML = '<option value="">-- Clear Hour (Free Hour) --</option>';
   filteredSubjects.forEach(s => {
     const option = document.createElement("option");
     const sCode = getVal(s, "Subject Code", "SubjectCode");
@@ -709,20 +738,14 @@ function handleSubjectSelectionInDialog() {
 }
 
 function populateFacultySelectors(subjectCode) {
-  // Find mapped faculty members for this subject
-  const mappedFacultyIds = db.subjectfaculty
-    .filter(sf => getVal(sf, "Subject Code", "SubjectCode") === subjectCode)
-    .map(sf => getVal(sf, "Faculty ID", "FacultyID", "ID"));
-  
-  let filteredFaculty = [];
-  
-  if (mappedFacultyIds.length > 0) {
-    // Map mapped faculty details
-    filteredFaculty = db.faculty.filter(f => mappedFacultyIds.includes(getVal(f, "Faculty ID", "FacultyID", "ID")));
-  } else {
-    // Fallback: Populate with all teachers in this department
-    filteredFaculty = db.faculty.filter(f => getVal(f, "Department", "Dept") === activeFilters.department);
-  }
+  // Populate with all teachers in this department, sorted alphabetically by name
+  const filteredFaculty = db.faculty
+    .filter(f => getVal(f, "Department", "Dept") === activeFilters.department)
+    .sort((a, b) => {
+      const nameA = getVal(a, "Faculty Name", "FacultyName", "Name").toLowerCase();
+      const nameB = getVal(b, "Faculty Name", "FacultyName", "Name").toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
   
   // Fill Primary Selector
   elements.cellSelectFaculty1.innerHTML = '<option value="">Select Primary Teacher</option>';
@@ -758,7 +781,6 @@ function toggleSecondFacultyField() {
 }
 
 // --- REAL-TIME SCHEDULING CONFLICT CHECKER ---
-// Scans loaded database to check if this teacher is assigned to another class during this exact time slot
 function checkGlobalConflict(day, periodIdx, facultyId) {
   if (!facultyId) return null;
   
@@ -769,7 +791,7 @@ function checkGlobalConflict(day, periodIdx, facultyId) {
     getVal(t, "Academic Year", "AcademicYear", "Year") === activeFilters.academicYear &&
     getVal(t, "Day") === day &&
     getVal(t, "Period") === periodDbStr &&
-    getVal(t, "Class", "ClassID", "Class ID") !== activeFilters.classId && // Ignore current class
+    getVal(t, "Class", "ClassID", "Class ID") !== activeFilters.classId &&
     String(getVal(t, "Faculty")).split(",").map(f => f.trim()).includes(facultyId)
   );
   
@@ -787,13 +809,11 @@ function checkGlobalConflict(day, periodIdx, facultyId) {
   return null;
 }
 
-// Scans loaded database to check if this class is already assigned to another teacher during this exact slot
 function checkGlobalClassConflict(day, periodIdx, classId) {
   if (!classId) return null;
   
   const periodDbStr = PERIOD_DATABASE_MAP[periodIdx];
   
-  // Find in database another entry with same academic year, semester, day, period, class, but faculty does not contain this teacher
   const clash = db.timetable.find(t => 
     getVal(t, "Academic Year", "AcademicYear", "Year") === activeFilters.academicYear &&
     getVal(t, "Semester") === activeFilters.semester &&
@@ -816,10 +836,9 @@ function checkGlobalClassConflict(day, periodIdx, classId) {
   return null;
 }
 
-// Triggered on modal selection change to warn in edit window
+// Warn HOD in edit window
 function checkForSchedulingClashes() {
   if (activeFilters.mode === "teacher") {
-    // Warnings are not required in Teacher Mode
     elements.dialogClashWarning.classList.add("hide");
     return;
   }
@@ -923,7 +942,7 @@ function clearCellInGrid() {
   closeModal(elements.modalCellEdit);
 }
 
-// --- COPY TIMETABLE FROM ANOTHER TARGET ---
+// --- CLONE/COPY TIMETABLE ---
 function openCopyModal() {
   const modalLabel = document.querySelector("#modal-copy .modal-desc");
   const modalTitle = document.querySelector("#modal-copy h3");
@@ -985,6 +1004,10 @@ function openCopyModal() {
   }
   
   elements.btnConfirmCopy.disabled = true;
+  openCopyModalOverlay();
+}
+
+function openCopyModalOverlay() {
   openModal(elements.modalCopy);
   lucide.createIcons();
 }
@@ -1053,7 +1076,7 @@ function executeCopyTimetable() {
   showToast("Copied layout. Remember to review conflicts and click Save.", "success");
 }
 
-// --- SAVE TIMETABLE BACK TO DATABASE ---
+// --- SAVE TIMETABLE ---
 async function saveTimetableToSheets() {
   elements.btnSave.disabled = true;
   elements.btnSave.innerHTML = '<i class="spin-icon" data-lucide="loader-2"></i> Saving...';
@@ -1130,13 +1153,12 @@ async function saveTimetableToSheets() {
   };
   
   if (config.apiUrl) {
-    // Send API write request
     try {
       const response = await fetch(config.apiUrl, {
         method: "POST",
         mode: "cors",
         headers: {
-          "Content-Type": "text/plain" // Prevents CORS preflight issues on standard configurations
+          "Content-Type": "text/plain"
         },
         body: JSON.stringify(payload)
       });
@@ -1146,10 +1168,8 @@ async function saveTimetableToSheets() {
       if (json.status === "success") {
         showToast("Timetable saved successfully to Google Sheets!", "success");
         
-        // Update local database copy
         clearLocalTimetableMemory();
         
-        // Add new entries
         entriesToSend.forEach(entry => {
           db.timetable.push({
             "Academic Year": activeFilters.academicYear,
@@ -1163,7 +1183,7 @@ async function saveTimetableToSheets() {
           });
         });
         
-        renderTimetableGrid(); // Rerender in case of new conflicts resolved/created
+        renderTimetableGrid();
       } else {
         throw new Error(json.message);
       }
@@ -1173,7 +1193,6 @@ async function saveTimetableToSheets() {
       saveLocallyToMock(entriesToSend);
     }
   } else {
-    // Save in offline session mock database
     saveLocallyToMock(entriesToSend);
     showToast("Saved successfully! (Demo Mode - Saved in Session Memory)", "success");
   }
@@ -1199,14 +1218,13 @@ function clearLocalTimetableMemory() {
         return !(rowFacultyItems.includes(activeTeacherName) || rowFacultyItems.includes(activeFilters.teacherId.toLowerCase()));
       }
     }
-    return true; // Keep entries from other semesters/years
+    return true;
   });
 }
 
 function saveLocallyToMock(entriesToSend) {
   clearLocalTimetableMemory();
   
-  // Add new
   entriesToSend.forEach(entry => {
     db.timetable.push({
       "Academic Year": activeFilters.academicYear,
@@ -1221,25 +1239,6 @@ function saveLocallyToMock(entriesToSend) {
   });
   
   renderTimetableGrid();
-}
-
-// --- DATABASE SETTINGS MODAL ---
-function saveSettings() {
-  const url = elements.txtApiUrl.value.trim();
-  config.apiUrl = url;
-  
-  if (url) {
-    localStorage.setItem("timetable_api_url", url);
-    fetchDataFromGoogleSheets();
-  } else {
-    localStorage.removeItem("timetable_api_url");
-    updateSystemMode(false);
-    db = { ...MOCK_DATABASE };
-    populateDepartmentDropdown();
-    showToast("Returned to offline demo database.", "success");
-  }
-  
-  closeModal(elements.modalSettings);
 }
 
 // --- DIALOG MODAL HELPERS ---
@@ -1282,10 +1281,8 @@ function showToast(message, type = "success") {
   elements.toastContainer.appendChild(toast);
   lucide.createIcons();
   
-  // Animate in
   setTimeout(() => toast.classList.add("show"), 10);
   
-  // Remove after 4s
   setTimeout(() => {
     toast.classList.remove("show");
     setTimeout(() => toast.remove(), 300);
