@@ -626,7 +626,10 @@ function getInitials(name) {
   if (!name) return "";
 
   let cleanName = name
-    .replace(/\b(Dr|Prof|Mr|Mrs|Ms|Sr)\.?\b/gi, "")
+    // Remove titles with their dots
+    .replace(/\b(Dr|Prof|Mr|Mrs|Ms|Sr)\.?\s*/gi, "")
+    // Remove any remaining dots
+    .replace(/\./g, "")
     .trim();
 
   const parts = cleanName.split(/\s+/);
