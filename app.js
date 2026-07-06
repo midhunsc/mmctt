@@ -624,10 +624,17 @@ function renderTimetableGrid() {
 // Utility: extract name initials (e.g. Dr. Susan George -> S.G.)
 function getInitials(name) {
   if (!name) return "";
-  let cleanName = name.replace(/Dr\.|Prof\.|Mr\.|Mrs\.|Ms\./g, "").trim();
+
+  let cleanName = name
+    .replace(/\b(Dr|Prof|Mr|Mrs|Ms|Sr)\.?\b/gi, "")
+    .trim();
+
   const parts = cleanName.split(/\s+/);
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+
+  return parts
+    .map(part => part[0])
+    .join("")
+    .toUpperCase();
 }
 
 // --- CELL EDIT POPUP MODAL ---
