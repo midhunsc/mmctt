@@ -100,7 +100,18 @@ function doPost(e) {
     const periodIdx = getHeaderIndex(headers, "Period");
     const subjectCodeIdx = getHeaderIndex(headers, "Subject Code", "SubjectCode");
     const subjectNameIdx = getHeaderIndex(headers, "Subject Name", "SubjectName");
-    
+    const departmentIdx = getHeaderIndex(
+        headers,
+        "Department",
+        "Dept"
+      );
+      
+      const categoryIdx = getHeaderIndex(
+        headers,
+        "Category",
+        "Course Category"
+      );
+          
     if (ayIdx === -1 || semIdx === -1 || classIdx === -1 || facIdx === -1 || dayIdx === -1 || periodIdx === -1 || subjectCodeIdx === -1 || subjectNameIdx === -1) {
       throw new Error("Timetable sheet headers must include columns: ID, Academic Year, Semester, Class, Day, Period, Subject Code, Subject Name, Faculty");
     }
@@ -158,8 +169,16 @@ function doPost(e) {
       } else {
         if (matchIdx !== -1) {
           // Overwrite cell values in matching row
-          existingData[matchIdx][subjectCodeIdx] = entry.subjectCode;
+         existingData[matchIdx][subjectCodeIdx] = entry.subjectCode;
           existingData[matchIdx][subjectNameIdx] = entry.subjectName || "";
+          
+          if (departmentIdx !== -1) {
+            existingData[matchIdx][departmentIdx] = entry.department || "";
+          }
+          
+          if (categoryIdx !== -1) {
+            existingData[matchIdx][categoryIdx] = entry.category || "";
+          }
           
           if (clearMode === "class") {
             existingData[matchIdx][facIdx] = entry.faculty || "";
@@ -174,6 +193,15 @@ function doPost(e) {
             switch (cleanHeader) {
               case "id":
                 newRow[colIdx] = "T-" + new Date().getTime() + "-" + Math.floor(Math.random() * 1000);
+                break;
+              case "department":
+              case "dept":
+                newRow[colIdx] = entry.department || "";
+                break;
+              
+              case "category":
+              case "coursecategory":
+                newRow[colIdx] = entry.category || "";
                 break;
               case "academicyear":
               case "year":
