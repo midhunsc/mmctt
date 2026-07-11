@@ -1102,13 +1102,36 @@ async function saveTimetableToSheets() {
       
       let subjectCode = "";
       let subjectName = "";
+      let category = "";
+      let department = "";
       let faculty = "";
       let classId = "";
       
       if (cell && cell.subjectCode) {
         subjectCode = cell.subjectCode;
-        const subjectObj = db.subjects.find(s => getVal(s, "Subject Code", "SubjectCode") === cell.subjectCode);
-        subjectName = subjectObj ? getVal(subjectObj, "Subject Name", "SubjectName") : "";
+        const subjectObj = db.subjects.find(s => 
+              getVal(s, "Subject Code", "SubjectCode") === cell.subjectCode
+            );
+            
+            if (subjectObj) {
+              subjectName = getVal(
+                subjectObj,
+                "Subject Name",
+                "SubjectName"
+              );
+            
+              category = getVal(
+                subjectObj,
+                "Category",
+                "Course Category"
+              );
+            
+              department = getVal(
+                subjectObj,
+                "Department",
+                "Dept"
+              );
+            }
         
         if (activeFilters.mode === "class") {
           const facultyNames = cell.faculty.map(fId => {
@@ -1143,8 +1166,12 @@ async function saveTimetableToSheets() {
       entriesToSend.push({
         day: day,
         period: periodDbStr,
+      
         subjectCode: subjectCode,
         subjectName: subjectName,
+        category: category,
+        department: department,
+      
         faculty: faculty,
         classId: classId
       });
@@ -1184,11 +1211,17 @@ async function saveTimetableToSheets() {
           db.timetable.push({
             "Academic Year": activeFilters.academicYear,
             "Semester": activeFilters.semester,
+          
+            "Department": entry.department,
             "Class": entry.classId,
+          
             "Day": entry.day,
             "Period": entry.period,
+          
             "Subject Code": entry.subjectCode,
             "Subject Name": entry.subjectName,
+            "Category": entry.category,
+          
             "Faculty": entry.faculty
           });
         });
@@ -1236,14 +1269,20 @@ function saveLocallyToMock(entriesToSend) {
   clearLocalTimetableMemory();
   
   entriesToSend.forEach(entry => {
-    db.timetable.push({
+      db.timetable.push({
       "Academic Year": activeFilters.academicYear,
       "Semester": activeFilters.semester,
+    
+      "Department": entry.department,
       "Class": entry.classId,
+    
       "Day": entry.day,
       "Period": entry.period,
+    
       "Subject Code": entry.subjectCode,
       "Subject Name": entry.subjectName,
+      "Category": entry.category,
+    
       "Faculty": entry.faculty
     });
   });
