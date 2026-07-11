@@ -31,7 +31,7 @@ function getVal(obj, ...keys) {
 let db = { ...MOCK_DATABASE };
 let config = {
   // Hardcoded deployment Google Apps Script URL for MMCTT portal
-  apiUrl: "https://script.google.com/macros/s/AKfycbxZ41-SlA1RMMQO4kZgk9ea8jSLXU-u1x68vLnMZo_A1hJPRJNVSaqpDOL7kmIreEUD/exec"
+  apiUrl: "https://script.google.com/macros/s/AKfycbzkVPeSdg1jvGG7AK00OrvTBfy3vb9stuz6tHnuaqIVm8Zfy5h30qN6xO7fAUTjcbu0Hw/exec"
 };
 
 // Selections
