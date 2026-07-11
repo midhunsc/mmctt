@@ -1103,15 +1103,21 @@ async function saveTimetableToSheets() {
       let subjectCode = "";
       let subjectName = "";
       let category = "";
-      let department = "";
+      let department = activeFilters.department;
       let faculty = "";
       let classId = "";
       
       if (cell && cell.subjectCode) {
         subjectCode = cell.subjectCode;
-        const subjectObj = db.subjects.find(s => 
-              getVal(s, "Subject Code", "SubjectCode") === cell.subjectCode
-            );
+          const subjectObj = db.subjects.find(s =>
+            String(getVal(s, "Subject Code", "SubjectCode"))
+              .trim()
+              .toUpperCase()
+            ===
+            String(cell.subjectCode)
+              .trim()
+              .toUpperCase()
+          );
             
             if (subjectObj) {
               subjectName = getVal(
